@@ -1,0 +1,9 @@
+*.pyc
+data_cv2/
+__pycache__/
+checkpoints/
+*.pth
+*.jpg
+venv/
+.idea/
+wandb/
