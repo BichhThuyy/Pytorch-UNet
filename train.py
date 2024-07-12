@@ -85,6 +85,8 @@ def train_model(
     for epoch in range(1, epochs + 1):
         model.train()
         epoch_loss = 0
+        all_preds = []
+        all_labels = []
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
                 images, true_masks = batch['image'], batch['mask']
@@ -109,6 +111,10 @@ def train_model(
                             F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True
                         )
+
+                _, preds = torch.max(masks_pred, 1)
+                all_preds.append(preds)
+                all_labels.append(true_masks)
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
@@ -158,6 +164,16 @@ def train_model(
                             })
                         except:
                             pass
+
+        all_preds = torch.cat(all_preds)
+        all_labels = torch.cat(all_labels)
+        # Calculate metrics
+        recall = (all_preds & all_labels).sum().item() / all_labels.sum().item()
+        precision = (all_preds & all_labels).sum().item() / all_preds.sum().item()
+        f1_score = 2 * (precision * recall) / (precision + recall)
+        logging.info(f'Recall: {recall}')
+        logging.info(f'Precision: {precision}')
+        logging.info(f'F1 score: {f1_score}')
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -220,8 +236,8 @@ if __name__ == '__main__':
             val_percent=args.val / 100,
             amp=args.amp
         )
-        torch.save(model.state_dict(), "MODEL_dice_score.pth")
-        print("Saved PyTorch Model State to MODEL_dice_score.pth")
+        torch.save(model.state_dict(), "MODEL_conf_matrix.pth")
+        print("Saved PyTorch Model State to MODEL_conf_matrix.pth")
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
                       'Enabling checkpointing to reduce memory usage, but this slows down training. '
@@ -238,5 +254,5 @@ if __name__ == '__main__':
             val_percent=args.val / 100,
             amp=args.amp
         )
-        torch.save(model.state_dict(), "MODEL_dice_core.pth")
-        print("Saved PyTorch Model State to MODEL_dice_score.pth")
+        torch.save(model.state_dict(), "MODEL_conf_matrix.pth")
+        print("Saved PyTorch Model State to MODEL_conf_matrix.pth")
