@@ -171,9 +171,9 @@ def train_model(
         recall = (all_preds & all_labels).sum().item() / all_labels.sum().item()
         precision = (all_preds & all_labels).sum().item() / all_preds.sum().item()
         f1_score = 2 * (precision * recall) / (precision + recall)
-        logging.info(f'Recall: {recall}')
-        logging.info(f'Precision: {precision}')
-        logging.info(f'F1 score: {f1_score}')
+        logging.info(f'Training Recall: {recall}')
+        logging.info(f'Training Precision: {precision}')
+        logging.info(f'Training F1 score: {f1_score}')
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -236,8 +236,8 @@ if __name__ == '__main__':
             val_percent=args.val / 100,
             amp=args.amp
         )
-        torch.save(model.state_dict(), "MODEL_conf_matrix.pth")
-        print("Saved PyTorch Model State to MODEL_conf_matrix.pth")
+        torch.save(model.state_dict(), "MODEL_05.pth")
+        print("Saved PyTorch Model State to MODEL_05.pth")
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
                       'Enabling checkpointing to reduce memory usage, but this slows down training. '
@@ -254,5 +254,5 @@ if __name__ == '__main__':
             val_percent=args.val / 100,
             amp=args.amp
         )
-        torch.save(model.state_dict(), "MODEL_conf_matrix.pth")
-        print("Saved PyTorch Model State to MODEL_conf_matrix.pth")
+        torch.save(model.state_dict(), "MODEL_05.pth")
+        print("Saved PyTorch Model State to MODEL_05.pth")
