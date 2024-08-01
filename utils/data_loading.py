@@ -12,6 +12,10 @@ from pathlib import Path
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+import glob
+import os
+import cv2
+
 
 def load_image(filename):
     ext = splitext(filename)[1]
@@ -115,3 +119,27 @@ class BasicDataset(Dataset):
 class CarvanaDataset(BasicDataset):
     def __init__(self, images_dir, mask_dir, scale=1):
         super().__init__(images_dir, mask_dir, scale, mask_suffix='_mask')
+
+
+class MyDataset(Dataset):
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.img_paths = glob.glob(os.path.join(data_path, 'imgs/*.png'))
+
+    def __getitem__(self, index):
+        image_path = self.img_paths[index]
+        label_path = f'{image_path.split('.png')[0].replace('imgs', 'masks')}_mask.png'
+
+        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        label = cv2.imread(label_path, cv2.IMREAD_UNCHANGED)
+
+        # convert data to single channel
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
+        image = image.reshape(1, image.shape[0], image.shape[1])
+        label = label.reshape(1, label.shape[0], label.shape[1])
+
+        return image, label
+
+    def __len__(self):
+        return len(self.img_paths)
