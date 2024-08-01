@@ -143,3 +143,57 @@ class MyDataset(Dataset):
 
     def __len__(self):
         return len(self.img_paths)
+
+
+class ISADataset(Dataset):
+    def __init__(self, data_path):
+        # 初始化函数，读取所有data_path下的图片
+        self.data_path = data_path
+        self.img_paths = sorted(glob.glob(os.path.join(data_path, 'imgs/*.png')))
+        self.total_slices = len(self.img_paths)
+
+
+    def __getitem__(self, index):
+        # 获取当前切片的路径
+        image_path = self.img_paths[index]
+
+        # 获取当前切片及其前后切片的标签路径
+        label_path = image_path.replace('imgs', 'feature_maps')
+        label_ip1_path = self.img_paths[index + 1].replace('imgs',
+                                                           'feature_maps') if index < self.total_slices - 1 else label_path
+        label_im1_path = self.img_paths[index - 1].replace('imgs',
+                                                           'feature_maps') if index > 0 else label_path
+
+        # 读取训练图片和标签图片
+        image = cv2.imread(image_path)
+        label = cv2.imread(label_path)
+        label_ip1 = cv2.imread(label_ip1_path)
+        label_im1 = cv2.imread(label_im1_path)
+
+        # 将数据转为单通道的图片
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
+        label_ip1 = cv2.cvtColor(label_ip1, cv2.COLOR_BGR2GRAY)
+        label_im1 = cv2.cvtColor(label_im1, cv2.COLOR_BGR2GRAY)
+
+        threshold = 199
+        label = (label >= threshold).astype(int)
+        label_ip1 = (label_ip1 >= threshold).astype(int)
+        label_im1 = (label_im1 >= threshold).astype(int)
+
+        if label.max() > 1:
+            label = label // 255
+        if label_ip1.max() > 1:
+            label_ip1 = label_ip1 // 255
+        if label_im1.max() > 1:
+            label_im1 = label_im1 // 255
+
+        image = image.reshape(1, image.shape[0], image.shape[1])
+        label = label.reshape(1, label.shape[0], label.shape[1])
+        label_ip1 = label_ip1.reshape(1, label_ip1.shape[0], label_ip1.shape[1])
+        label_im1 = label_im1.reshape(1, label_im1.shape[0], label_im1.shape[1])
+
+        return image,label, label_ip1, label_im1
+
+    def __len__(self):
+        return len(self.img_paths)
