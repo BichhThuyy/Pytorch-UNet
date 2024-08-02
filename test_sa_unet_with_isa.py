@@ -1,11 +1,14 @@
 # 导入所需的库和模块
 import os
+
+from torch import nn
 from tqdm import tqdm
 import numpy as np
 import torch
 import cv2
 import logging
 
+from unet.attention_module import InterSliceAttention
 from unet.attention_unet import UNetWithSpatialAttention
 from utils.evaluation import evaluate_metrics
 
@@ -15,9 +18,13 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net = UNetWithSpatialAttention(in_channels=1, n_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('SA_Unet.pth.pth', map_location=device))
+    net.load_state_dict(torch.load('SA_Unet.pth', map_location=device))
     net.eval()
-    logging.info('Done loading')
+
+    attention_module = InterSliceAttention(in_channels=1).to(device)
+    attention_module.load_state_dict(torch.load('ISA_MODULE.pth'))
+
+    logging.info('Done loading model')
 
     # 确保结果目录存在
     if not os.path.exists(pred_dir):
@@ -27,54 +34,54 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     metrics_list = []
 
     image_ids = [image_name.split(".")[0] for image_name in os.listdir(test_dir)]
+    image_ids.sort()  # 确保按顺序处理
 
-    for image_id in tqdm(image_ids):
+    for idx, image_id in enumerate(tqdm(image_ids)):
+        if idx == 0 or idx == len(image_ids) - 1:
+            continue  # 跳过第一张和最后一张图片，因为没有前后切片
+
         image_path = os.path.join(test_dir, image_id + ".png")
-        gt_path = os.path.join(gt_dir, image_id + "_maks.png")
+        gt_path = os.path.join(gt_dir, image_id + "_mask.png")
+        prev_image_path = os.path.join(gt_dir, image_ids[idx - 1] + ".png")
+        next_image_path = os.path.join(gt_dir, image_ids[idx + 1] + ".png")
 
         # 读取原图以获取其大小
-        original_img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        original_size = (original_img.shape[1], original_img.shape[0])  # (width, height)
+        original_img = cv2.imread(image_path)
 
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         gt_img = cv2.imread(gt_path, cv2.IMREAD_GRAYSCALE)
-        image = img.reshape(1, img.shape[0], img.shape[1])
-        gt_img = gt_img.reshape(1, gt_img.shape[0], gt_img.shape[1])
+        prev_img = cv2.imread(prev_image_path, cv2.IMREAD_GRAYSCALE)
+        next_img = cv2.imread(next_image_path, cv2.IMREAD_GRAYSCALE)
 
-        img_tensor = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).to(device, dtype=torch.float32)
+        img_tensor = torch.from_numpy(img).unsqueeze(0).to(device, dtype=torch.float32)
+        gt_img_tensor = torch.from_numpy(gt_img).unsqueeze(0).to(device, dtype=torch.float32)
+        prev_img_tensor = torch.from_numpy(prev_img).unsqueeze(0).to(device, dtype=torch.float32)
+        next_img_tensor = torch.from_numpy(next_img).unsqueeze(0).to(device, dtype=torch.float32)
 
         with torch.no_grad():  # 确保不会计算梯度
-            pred = net(img_tensor)
-            pred_prob = pred
+            pred_i = net(img_tensor)
+            pred_ip1 = net(next_img_tensor)
+            pred_im1 = net(prev_img_tensor)
+
+            refined_pred = attention_module(pred_i, pred_ip1, pred_im1)
+            pred_prob = refined_pred
 
         # 转换预测结果为二值图像，并保存
         pred_mask = (pred_prob.cpu().numpy() > 0.5).astype(np.uint8)[0, 0] * 255
         pred_save_path = os.path.join(pred_dir, image_id + ".png")
-        # 重要：调整掩膜大小为原图大小
-        # pred_mask_resized = cv2.resize(pred_mask, original_size, interpolation=cv2.INTER_NEAREST)
         cv2.imwrite(pred_save_path, pred_mask)
 
         # 将预测结果和真实标签转换为Tensor，用于指标计算
-
         pred_tensor = torch.from_numpy(pred_mask / 255.0).unsqueeze(0).unsqueeze(0).to(device, dtype=torch.float32)
-        thresholded = np.where(gt_img > 190, 255, 0) #用阈值二值化去除部分杂讯
+        thresholded = np.where(gt_img > 190, 255, 0)  # 用阈值二值化去除部分杂讯
         gt_tensor = torch.from_numpy(thresholded / 255.0).unsqueeze(0).unsqueeze(0).to(device, dtype=torch.float32)
 
         # 使用evaluate_metrics函数计算指标
         metrics = evaluate_metrics(pred_tensor, gt_tensor)
         metrics_list.append(metrics)
-        # 计算平均指标
-    # 初始化一个新列表，用于保存转换后的度量值
-    metrics_list_cpu = []
 
-    # 遍历每个度量值元组
-    for metrics in metrics_list:
-        # 对每个度量值元组中的每个张量进行处理
-        metrics_cpu = [metric.cpu().numpy() for metric in metrics]
-        # 将处理后的度量值列表添加到新列表中
-        metrics_list_cpu.append(metrics_cpu)
-
-    # 将列表转换为 NumPy 数组，然后计算沿着指定轴的均值
+    # 计算平均指标
+    metrics_list_cpu = [[metric.cpu().numpy() for metric in metrics] for metrics in metrics_list]
     avg_metrics = np.mean(metrics_list_cpu, axis=0)
 
     # 输出平均指标
@@ -92,5 +99,5 @@ def cal_miou(test_dir, pred_dir, gt_dir):
 
 if __name__ == '__main__':
     cal_miou(test_dir="data/test/imgs",
-             pred_dir="data/test/sa_unet_results",
-             gt_dir="data/test/masks")
+             pred_dir="data/test/sa_unet_isa_results",
+             gt_dir="data/test/sa_unet_isa_results")
