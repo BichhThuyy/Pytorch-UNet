@@ -7,6 +7,8 @@ import cv2
 import logging
 
 from unet.attention_unet import UNetWithSpatialAttention
+from unet.multiple_attention_unet import UNetWithMultipleSpatialAttention
+from unet.optimized_pure_unet import OptimisedUNetWithSpatialAttention
 from utils.evaluation import evaluate_metrics
 
 
@@ -14,10 +16,15 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     logging.info('Start loading model')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net = UNetWithSpatialAttention(in_channels=1, n_classes=1)
+    # net = OptimisedUNetWithSpatialAttention(in_channels=1, n_classes=1)
+    # net = UNetWithMultipleSpatialAttention(in_channels=1, n_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('SA_Unet.pth.pth', map_location=device))
+    net.load_state_dict(torch.load('Attention_s5_UNET.pth', map_location=device))
     net.eval()
     logging.info('Done loading')
+
+    num_params = sum(p.numel() for p in net.parameters())
+    model_size = num_params * 4 / (1024 ** 2)
 
     # 确保结果目录存在
     if not os.path.exists(pred_dir):
@@ -30,7 +37,7 @@ def cal_miou(test_dir, pred_dir, gt_dir):
 
     for image_id in tqdm(image_ids):
         image_path = os.path.join(test_dir, image_id + ".png")
-        gt_path = os.path.join(gt_dir, image_id + "_maks.png")
+        gt_path = os.path.join(gt_dir, image_id + "_mask.png")
 
         # 读取原图以获取其大小
         original_img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
@@ -41,7 +48,7 @@ def cal_miou(test_dir, pred_dir, gt_dir):
         image = img.reshape(1, img.shape[0], img.shape[1])
         gt_img = gt_img.reshape(1, gt_img.shape[0], gt_img.shape[1])
 
-        img_tensor = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).to(device, dtype=torch.float32)
+        img_tensor = torch.from_numpy(image).unsqueeze(0).to(device, dtype=torch.float32)
 
         with torch.no_grad():  # 确保不会计算梯度
             pred = net(img_tensor)
@@ -52,7 +59,7 @@ def cal_miou(test_dir, pred_dir, gt_dir):
         pred_save_path = os.path.join(pred_dir, image_id + ".png")
         # 重要：调整掩膜大小为原图大小
         # pred_mask_resized = cv2.resize(pred_mask, original_size, interpolation=cv2.INTER_NEAREST)
-        cv2.imwrite(pred_save_path, pred_mask)
+        # cv2.imwrite(pred_save_path, pred_mask)
 
         # 将预测结果和真实标签转换为Tensor，用于指标计算
 
@@ -88,9 +95,11 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     print(f"Average FP: {avg_metrics[7]:.4f}")
     print(f"Average TN: {avg_metrics[8]:.4f}")
     print(f"Average FN: {avg_metrics[9]:.4f}")
+    print(f"Num params: {num_params}")
+    print(f"Model size : {model_size}MB")
 
 
 if __name__ == '__main__':
-    cal_miou(test_dir="data/test/imgs",
-             pred_dir="data/test/sa_unet_results",
-             gt_dir="data/test/masks")
+    cal_miou(test_dir="mri_data/test/imgs",
+             pred_dir="mri_data/test/multiple_attention_unet_results",
+             gt_dir="mri_data/test/masks")

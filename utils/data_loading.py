@@ -136,6 +136,7 @@ class MyDataset(Dataset):
         # convert data to single channel
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
+        label = label // 255 if label.max() > 1 else label
         image = image.reshape(1, image.shape[0], image.shape[1])
         label = label.reshape(1, label.shape[0], label.shape[1])
 
@@ -150,50 +151,61 @@ class ISADataset(Dataset):
         # 初始化函数，读取所有data_path下的图片
         self.data_path = data_path
         self.img_paths = sorted(glob.glob(os.path.join(data_path, 'imgs/*.png')))
-        self.total_slices = len(self.img_paths)
-
+        self.fm_paths = sorted(glob.glob(os.path.join(data_path, 'dense_unet_feature_maps/*.png')))
 
     def __getitem__(self, index):
-        # 获取当前切片的路径
         image_path = self.img_paths[index]
+        mask_path = image_path.replace('imgs', 'masks')
+        mask_path = f'{mask_path.split('.')[0]}_mask.png'
+        fm_path = image_path.replace('imgs', 'dense_unet_feature_maps')
 
-        # 获取当前切片及其前后切片的标签路径
-        label_path = image_path.replace('imgs', 'feature_maps')
-        label_ip1_path = self.img_paths[index + 1].replace('imgs',
-                                                           'feature_maps') if index < self.total_slices - 1 else label_path
-        label_im1_path = self.img_paths[index - 1].replace('imgs',
-                                                           'feature_maps') if index > 0 else label_path
+        image_name = image_path.split('.')[0]
+        image_index = int(image_name.split('_')[2])
+        previous_index_formated = f'{image_index - 1}' if (image_index - 1) > 9 else f'0{image_index - 1}'
+        next_index_formated = f'{image_index + 1}' if (image_index + 1) > 9 else f'0{image_index + 1}'
+        image_index_formated = image_name.split('_')[2]
+
+        fm_previous_path = fm_path.replace(f'_{image_index_formated}', f'_{previous_index_formated}')
+        try:
+            self.fm_paths.index(fm_previous_path)
+        except:
+            fm_previous_path = image_path
+        # fm_previous_path = fm_path if (cv2.imread(fm_previous_path) is None) else fm_previous_path
+
+        fm_next_path = fm_path.replace(f'_{image_index_formated}', f'_{next_index_formated}')
+        try:
+            self.fm_paths.index(fm_next_path)
+        except:
+            fm_next_path = image_path
+        # fm_next_path = fm_path if (cv2.imread(fm_next_path) is None) else fm_next_path
 
         # 读取训练图片和标签图片
-        image = cv2.imread(image_path)
-        label = cv2.imread(label_path)
-        label_ip1 = cv2.imread(label_ip1_path)
-        label_im1 = cv2.imread(label_im1_path)
+        mask = cv2.imread(mask_path)
+        fm_i = cv2.imread(fm_path)
+        fm_pi = cv2.imread(fm_previous_path)
+        fm_ni = cv2.imread(fm_next_path)
 
         # 将数据转为单通道的图片
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
-        label_ip1 = cv2.cvtColor(label_ip1, cv2.COLOR_BGR2GRAY)
-        label_im1 = cv2.cvtColor(label_im1, cv2.COLOR_BGR2GRAY)
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+        fm_i = cv2.cvtColor(fm_i, cv2.COLOR_BGR2GRAY)
+        fm_pi = cv2.cvtColor(fm_pi, cv2.COLOR_BGR2GRAY)
+        fm_ni = cv2.cvtColor(fm_ni, cv2.COLOR_BGR2GRAY)
 
-        threshold = 199
-        label = (label >= threshold).astype(int)
-        label_ip1 = (label_ip1 >= threshold).astype(int)
-        label_im1 = (label_im1 >= threshold).astype(int)
+        if mask.max() > 1:
+            mask = mask // 255
+        if fm_i.max() > 1:
+            fm_i = fm_i // 255
+        if fm_pi.max() > 1:
+            fm_pi = fm_pi // 255
+        if fm_ni.max() > 1:
+            fm_ni = fm_ni // 255
 
-        if label.max() > 1:
-            label = label // 255
-        if label_ip1.max() > 1:
-            label_ip1 = label_ip1 // 255
-        if label_im1.max() > 1:
-            label_im1 = label_im1 // 255
+        mask = mask.reshape(1, mask.shape[0], mask.shape[1])
+        fm_i = fm_i.reshape(1, fm_i.shape[0], fm_i.shape[1])
+        fm_pi = fm_pi.reshape(1, fm_pi.shape[0], fm_pi.shape[1])
+        fm_ni = fm_ni.reshape(1, fm_ni.shape[0], fm_ni.shape[1])
 
-        image = image.reshape(1, image.shape[0], image.shape[1])
-        label = label.reshape(1, label.shape[0], label.shape[1])
-        label_ip1 = label_ip1.reshape(1, label_ip1.shape[0], label_ip1.shape[1])
-        label_im1 = label_im1.reshape(1, label_im1.shape[0], label_im1.shape[1])
-
-        return image,label, label_ip1, label_im1
+        return mask, fm_i, fm_pi, fm_ni
 
     def __len__(self):
         return len(self.img_paths)

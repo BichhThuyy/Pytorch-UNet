@@ -7,6 +7,7 @@ import glob
 import logging
 import torch
 
+from unet.attention_dense_unet import SADenseUNet
 from unet.attention_unet import UNetWithSpatialAttention
 
 
@@ -51,16 +52,17 @@ def PrepareRawData():
 
 
 def GenerateFeatureMaps(data_path):
-    logging.info('Start loading model')
+    print('Start loading model')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    net = UNetWithSpatialAttention(in_channels=1, n_classes=1)
+    net = SADenseUNet(in_channels=1, num_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('SA_Unet.pth', map_location=device))
+    net.load_state_dict(torch.load('Attention_Dense_UNET.pth', map_location=device))
     net.eval()
-    logging.info('Done loading')
+    print('Done loading')
     img_paths = glob.glob(os.path.join(data_path, 'imgs/*.png'))
+    total_files = 0
 
-    for img_path in img_paths[0:1]:
+    for img_path in img_paths:
         image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         image = image.reshape(1, image.shape[0], image.shape[1])
         img_tensor = torch.from_numpy(image).unsqueeze(0).to(device, dtype=torch.float32)
@@ -71,11 +73,13 @@ def GenerateFeatureMaps(data_path):
             fm = (fm - fm.min()) / (fm.max() - fm.min()) * 255
             fm = fm.byte()
             fm_image = fm.cpu().numpy()
-            fm_path = img_path.replace('imgs', 'feature_maps')
+            fm_path = img_path.replace('imgs', 'dense_unet_feature_maps')
             cv2.imwrite(fm_path, fm_image)
+            total_files += 1
 
+    print('Total: ', total_files)
 
 
 if __name__ == '__main__':
-    GenerateFeatureMaps(data_path='data')
+    GenerateFeatureMaps(data_path='mri_data')
 
