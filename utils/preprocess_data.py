@@ -80,6 +80,39 @@ def GenerateFeatureMaps(data_path):
     print('Total: ', total_files)
 
 
+def RearrangeData(root_path):
+    imgs_root_path = f'{root_path}/imgs'
+    masks_root_path = f'{root_path}/masks'
+
+    imgs_des_path = f'{root_path}/train/imgs'
+    masks_des_path = f'{root_path}/train/masks'
+
+    total_patients = 0
+    for img_file in os.listdir(imgs_root_path)[0:2]:
+        img_source_path = f'{imgs_root_path}/{img_file}'
+        mask_source_path = f'{masks_root_path}/{img_file.split(".png")[0]}_mask.png'
+
+        img_patient_list = os.listdir(imgs_des_path)
+        mask_patient_list = os.listdir(masks_des_path)
+        patient_id = img_file.split('_')[0]
+        if patient_id not in img_patient_list:
+            os.mkdir(f'{imgs_des_path}/{patient_id}')
+        if patient_id not in mask_patient_list:
+            os.mkdir(f'{masks_des_path}/{patient_id}')
+
+        img_des_path = f'{imgs_des_path}/{patient_id}/{int(img_file.split('_')[0].split(".png")[0])}.png'
+        mask_des_path = f'{masks_des_path}/{patient_id}/{int(img_file.split('_')[0].split(".png")[0])}.png'
+
+        print('img_source_path', img_source_path)
+        print('mask_source_path', mask_source_path)
+        print('img_des_path', img_des_path)
+        print('mask_des_path', mask_des_path)
+
+        # shutil.copy2(img_source_path, img_des_path)
+        # shutil.copy2(mask_source_path, mask_des_path)
+        # total_patients += 1
+
+
 if __name__ == '__main__':
     GenerateFeatureMaps(data_path='mri_data')
 
