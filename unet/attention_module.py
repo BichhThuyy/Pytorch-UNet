@@ -3,11 +3,11 @@ import torch.nn as nn
 
 
 class SpatialAttention(nn.Module):
-    def __init__(self):
+    def __init__(self, kernel_size=3, padding=1):
         super(SpatialAttention, self).__init__()
         # self.conv = nn.Conv2d(2, 1, kernel_size=7, stride=1, padding=3) #32
         # self.conv = nn.Conv2d(2, 1, kernel_size=3, stride=1, padding=1)
-        self.conv = nn.Conv2d(2, 1, kernel_size=5, stride=1, padding=2)
+        self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, stride=1, padding=padding)
 
     def forward(self, x):
         x1 = torch.mean(x, dim=1, keepdim=True)

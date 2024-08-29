@@ -14,8 +14,11 @@ class UNetWithMultipleSpatialAttention(nn.Module):
 
         self.inc = DoubleConv(in_channels, 64)
         self.down1 = Down(64, 128)
+        self.attention1 = SpatialAttention(kernel_size=1, padding=0)
         self.down2 = Down(128, 256)
+        self.attention2 = SpatialAttention(kernel_size=1, padding=0)
         self.down3 = Down(256, 512)
+        self.attention3 = SpatialAttention(kernel_size=1, padding=0)
         self.down4 = Down(512, 512)
 
         self.attention = SpatialAttention()
@@ -29,13 +32,13 @@ class UNetWithMultipleSpatialAttention(nn.Module):
     def forward(self, x):
         x1 = self.inc(x)
         x2 = self.down1(x1)
-        x2 = self.attention(x2)
+        x2 = self.attention1(x2)
 
         x3 = self.down2(x2)
-        x3 = self.attention(x3)
+        x3 = self.attention2(x3)
 
         x4 = self.down3(x3)
-        x4 = self.attention(x4)
+        x4 = self.attention3(x4)
 
         x5 = self.down4(x4)
         x5 = self.attention(x5)

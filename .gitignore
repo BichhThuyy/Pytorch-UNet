@@ -15,3 +15,4 @@ mri_data/test/multiple_attention_unet_results/
 mri_data/test/optimised_attention_unet_results/
 mri_data/test/unet_2plus_results/
 mri_data/test/unet_3plus_results/
+mri_data/feature_maps

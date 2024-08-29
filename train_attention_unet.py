@@ -74,7 +74,7 @@ def train_net(
 
                 if loss < best_loss:
                     best_loss = loss
-                    torch.save(net.state_dict(), 'Attention_s5_UNET.pth')
+                    torch.save(net.state_dict(), 'Multiple_Dif_Attention_UNET.pth')
 
                 loss.backward()
                 optimizer.step()
@@ -95,8 +95,8 @@ def train_net(
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig('Attention_s5_UNET_training_loss.png')
-    print(f"Best loss: {best_loss} - Saved PyTorch Model State to Attention_s5_UNET.pth")
+    plt.savefig('Multiple_Dif_Attention_UNET_training_loss.png')
+    print(f"Best loss: {best_loss} - Saved PyTorch Model State to Multiple_Dif_Attention_UNET.pth")
     print(f'Toal time: {(time.time() - start_time)/3600:.2f} hours')
 
 
@@ -105,9 +105,9 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    model = UNetWithSpatialAttention(in_channels=1, n_classes=1)
+    # model = UNetWithSpatialAttention(in_channels=1, n_classes=1)
     # model = OptimisedUNetWithSpatialAttention(in_channels=1, n_classes=1)
-    # model = UNetWithMultipleSpatialAttention(in_channels=1, n_classes=1)
+    model = UNetWithMultipleSpatialAttention(in_channels=1, n_classes=1)
     model.to(device=device)
 
     logging.info(f'Network:\n'
