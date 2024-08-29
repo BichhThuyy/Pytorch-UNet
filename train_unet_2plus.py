@@ -74,7 +74,7 @@ def train_net(
 
                 if loss < best_loss:
                     best_loss = loss
-                    torch.save(net.state_dict(), 'Unet_2plus.pth')
+                    torch.save(net.state_dict(), 'trained_model_params/Unet_2plus.pth')
 
                 loss.backward()
                 optimizer.step()

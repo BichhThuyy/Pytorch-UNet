@@ -73,7 +73,7 @@ def train_net(
 
                 if loss < best_loss:
                     best_loss = loss
-                    torch.save(net.state_dict(), 'UNET_3plus.pth')
+                    torch.save(net.state_dict(), 'trained_model_params/UNET_3plus.pth')
 
                 loss.backward()
                 optimizer.step()
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     logging.info(f'Using device {device}')
 
     model = UNet_3Plus(in_channels=1, n_classes=1)
-    model.load_state_dict(torch.load('Unet_3plus.pth', map_location=device))
+    model.load_state_dict(torch.load('trained_model_params/UNET_3plus.pth', map_location=device))
     model.to(device=device)
 
     logging.info(f'Network:\n'

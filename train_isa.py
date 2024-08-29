@@ -73,7 +73,7 @@ def train_net(
 
                 if loss.item() < best_loss:
                     best_loss = loss.item()
-                    torch.save(net.state_dict(), 'ISA_MODULE_DENSE_UNET.pth')
+                    torch.save(net.state_dict(), 'trained_model_params/ISA_MODULE_DENSE_UNET.pth')
 
                 loss.backward()
                 optimizer.step()

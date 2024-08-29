@@ -16,7 +16,7 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net = SADenseUNet(in_channels=1, num_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('Attention_Dense_UNET.pth', map_location=device))
+    net.load_state_dict(torch.load('trained_model_params/Attention_Dense_UNET.pth', map_location=device))
     net.eval()
     logging.info('Done loading')
 

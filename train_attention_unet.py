@@ -74,7 +74,7 @@ def train_net(
 
                 if loss < best_loss:
                     best_loss = loss
-                    torch.save(net.state_dict(), 'Multiple_Dif_Attention_UNET.pth')
+                    torch.save(net.state_dict(), 'trained_model_params/Multiple_Dif_Attention_UNET.pth')
 
                 loss.backward()
                 optimizer.step()

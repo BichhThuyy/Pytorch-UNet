@@ -56,7 +56,7 @@ def GenerateFeatureMaps(data_path):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net = SADenseUNet(in_channels=1, num_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('Attention_Dense_UNET.pth', map_location=device))
+    net.load_state_dict(torch.load('trained_model_params/Attention_Dense_UNET.pth', map_location=device))
     net.eval()
     print('Done loading')
     img_paths = glob.glob(os.path.join(data_path, 'imgs/*.png'))

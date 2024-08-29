@@ -15,7 +15,7 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net = UNet_3Plus(in_channels=1, n_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('Unet_3plus.pth', map_location=device))
+    net.load_state_dict(torch.load('trained_model_params/UNET_3plus.pth', map_location=device))
     net.eval()
     logging.info('Done loading')
 

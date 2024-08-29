@@ -18,14 +18,14 @@ def cal_miou(test_dir, pred_dir, gt_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net = UNetWithSpatialAttention(in_channels=1, n_classes=1)
     net.to(device=device)
-    net.load_state_dict(torch.load('Attention_UNET_2nd.pth', map_location=device))
+    net.load_state_dict(torch.load('trained_model_params/Attention_UNET_2nd.pth', map_location=device))
     net.eval()
 
     num_params = sum(p.numel() for p in net.parameters())
     model_size = num_params * 4 / (1024 ** 2)
 
     attention_module = InterSliceAttention(in_channels=1).to(device)
-    attention_module.load_state_dict(torch.load('ISA_MODULE_2nd.pth'))
+    attention_module.load_state_dict(torch.load('trained_model_params/ISA_MODULE_2nd.pth'))
 
     logging.info('Done loading model')
 
