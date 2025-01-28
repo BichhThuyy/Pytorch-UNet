@@ -12,6 +12,9 @@ mri_data/feature_maps/
 mri_data/imgs/
 mri_data/masks/
 mri_data/test/
+mri_data/train_split/
+mri_data/test_split/
 data/imgs/
 data/masks/
 data/test/
+data/train/

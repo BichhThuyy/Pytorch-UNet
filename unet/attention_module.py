@@ -21,7 +21,10 @@ class SpatialAttention(nn.Module):
 class InterSliceAttention(nn.Module):
     def __init__(self, in_channels):
         super(InterSliceAttention, self).__init__()
-        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1, stride=1, padding=0)
+        # self.conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1, stride=1, padding=0)
+        # self.conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, stride=1, padding=1)
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=5, stride=1, padding=2)
+        # self.conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=7, stride=1, padding=3)
 
     def forward(self, slice_i, slice_ip1, slice_im1):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -32,8 +35,8 @@ class InterSliceAttention(nn.Module):
         # attention_mask_ip1 = self.conv(slice_ip1).to(device)
         # attention_mask_im1 = self.conv(slice_im1).to(device)
 
-        slice_ip1_attention = slice_i * attention_mask_ip1
-        slice_im1_attention = slice_i * attention_mask_im1
+        slice_ip1_attention = slice_i * attention_mask_ip1 * 1
+        slice_im1_attention = slice_i * attention_mask_im1 * 1
 
         slice_attention = torch.sigmoid((slice_i + slice_ip1_attention + slice_im1_attention))
 
